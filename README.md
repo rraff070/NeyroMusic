@@ -49,7 +49,7 @@ python separator.py "C:\Мои песни\мой трек.mp3"
 
 Результат работы скрипта:
 
-![Запуск separator.py](screenshots/console_start.png)
+![Запуск separator.py](MusicSeparator/screenshots/console_start.png)
 
 [СКРИНШОТ 8: Результат работы separator.py — четыре WAV файла в папке output]
 
