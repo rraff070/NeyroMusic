@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аудиотомия - Разделение музыки на инструментальные дорожки</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover:not(.disabled) {
+            border-color: #764ba2;
+            background: #f8f9ff;
+        }
+
+        .upload-area.drag-over {
+            border-color: #00d4ff;
+            background: #e6f7ff;
+        }
+
+        .upload-area.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .upload-hint {
+            color: #999;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .requirements {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 10px;
+            font-size: 0.9em;
+        }
+
+        .requirements h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .requirements ul {
+            margin-left: 20px;
+            color: #856404;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 20px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+        }
+
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .success-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1.1em;
+            margin-top: 15px;
+            transition: transform 0.2s;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .info-card {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .timer {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .timer-label {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .processing-info {
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                max-width: 100%;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 АУДИОТОМИЯ</h1>
+            <p>Разделите любую песню на инструментальные дорожки: вокал, барабаны, бас и остальное</p>
+        </div>
+
+        <div class="card">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Нажмите или перетащите файл сюда</div>
+                <div class="upload-hint">Поддерживаемые форматы: MP3, WAV, FLAC, M4A</div>
+                <input type="file" id="fileInput" accept=".mp3,.wav,.flac,.m4a">
+                <button class="btn" id="uploadBtn">Выбрать файл</button>
+            </div>
+
+            <div class="requirements">
+                <h4>📋 Требования к файлу:</h4>
+                <ul>
+                    <li>Максимальный размер: <strong>50 МБ</strong></li>
+                    <li>Максимальная длительность: <strong>10 минут</strong></li>
+                    <li>Форматы: MP3, WAV, FLAC, M4A</li>
+                </ul>
+            </div>
+
+            <div class="loader" id="loader">
+                <div class="spinner"></div>
+                <p>🔄 Обработка аудио... Пожалуйста, подождите</p>
+                <div class="timer" id="timer">0.0</div>
+                <div class="timer-label">секунд обработки</div>
+                <div class="processing-info">
+                    ⏱️ Время зависит от длительности трека и производительности
+                </div>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <div class="results" id="results">
+            <div class="card result-card">
+                <div class="success-icon">✅</div>
+                <h2 style="margin-bottom: 15px;">Разделение завершено!</h2>
+                <p style="margin-bottom: 15px; color: #666;">Все инструментальные дорожки готовы к скачиванию</p>
+                <button class="download-btn" id="downloadAllBtn">
+                    📦 Скачать все стемы (ZIP архив)
+                </button>
+                <div class="stats" id="stats"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentZipUrl = null;
+        let startTime = null;
+        let timerInterval = null;
+        let processingTime = null;
+        let isProcessing = false;
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const loader = document.getElementById('loader');
+        const results = document.getElementById('results');
+        const errorMessage = document.getElementById('errorMessage');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const statsDiv = document.getElementById('stats');
+        const timerElement = document.getElementById('timer');
+
+        function disableUpload(disabled) {
+            isProcessing = disabled;
+            if (disabled) {
+                uploadArea.classList.add('disabled');
+                uploadBtn.disabled = true;
+            } else {
+                uploadArea.classList.remove('disabled');
+                uploadBtn.disabled = false;
+            }
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                const elapsed = (Date.now() - startTime) / 1000;
+                timerElement.textContent = elapsed.toFixed(1);
+            }, 100);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                processingTime = (Date.now() - startTime) / 1000;
+                timerInterval = null;
+            }
+        }
+
+        // Обработка загрузки файла
+        async function handleFileUpload(file) {
+            if (isProcessing) {
+                showError('⚠️ Пожалуйста, дождитесь завершения текущей обработки');
+                return;
+            }
+
+            // Валидация
+            const allowedExtensions = ['.mp3', '.wav', '.flac', '.m4a'];
+            const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+
+            if (!allowedExtensions.includes(fileExt)) {
+                showError('❌ Неподдерживаемый формат файла. Поддерживаются: MP3, WAV, FLAC, M4A');
+                return;
+            }
+
+            if (file.size > 50 * 1024 * 1024) {
+                showError('❌ Файл слишком большой. Максимальный размер: 50 МБ');
+                return;
+            }
+
+            // Блокируем интерфейс и показываем загрузчик
+            disableUpload(true);
+            hideError();
+            loader.style.display = 'block';
+            results.style.display = 'none';
+            startTimer();
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/separate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                stopTimer();
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Ошибка при обработке');
+                }
+
+                // Получаем ZIP файл
+                const blob = await response.blob();
+                if (currentZipUrl) {
+                    URL.revokeObjectURL(currentZipUrl);
+                }
+                currentZipUrl = URL.createObjectURL(blob);
+
+                // Отображаем результаты
+                displayResults(file.name, processingTime);
+
+            } catch (error) {
+                stopTimer();
+                showError(error.message);
+            } finally {
+                loader.style.display = 'none';
+                disableUpload(false);
+            }
+        }
+
+        function displayResults(filename, processingTime) {
+            // Информация о треке
+            statsDiv.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${escapeHtml(filename)}</div>
+                    <div class="stat-label">Название трека</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">4</div>
+                    <div class="stat-label">Количество стемов</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${processingTime.toFixed(1)}</div>
+                    <div class="stat-label">Время обработки (сек)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">WAV</div>
+                    <div class="stat-label">Формат стемов</div>
+                </div>
+            `;
+
+            results.style.display = 'block';
+            results.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Клик на области загрузки (только если не обрабатывается)
+        uploadArea.addEventListener('click', () => {
+            if (!isProcessing) {
+                fileInput.click();
+            }
+        });
+
+        uploadBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!isProcessing) {
+                fileInput.click();
+            }
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if (!isProcessing) {
+                uploadArea.classList.add('drag-over');
+            }
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            if (!isProcessing) {
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('audio/')) {
+                    handleFileUpload(file);
+                } else {
+                    showError('❌ Пожалуйста, перетащите аудиофайл');
+                }
+            }
+        });
+
+        // Выбор файла
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0] && !isProcessing) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+
+        downloadAllBtn.addEventListener('click', () => {
+            if (currentZipUrl) {
+                const link = document.createElement('a');
+                link.href = currentZipUrl;
+                link.download = 'music_stems.zip';
+                link.click();
+            } else {
+                showError('ZIP архив не найден');
+            }
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 8000);
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Проверка статуса сервера
+        async function checkHealth() {
+            try {
+                const response = await fetch('/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Сервер готов:', data);
+                }
+            } catch (error) {
+                console.warn('Сервер не доступен');
+            }
+        }
+
+        checkHealth();
+    </script>
+</body>
+</html>
