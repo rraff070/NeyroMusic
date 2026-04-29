@@ -86,11 +86,22 @@ python evaluate_musdb.py --musdb-path musdb18 --max-tracks 5
 
 Модель лучше всего справляется с вокалом. С барабанами и остальными инструментами бывают сложности — это известная проблема Demucs, так как барабаны часто перекрываются по частотам с другими инструментами.
 
-Был создан график evaluation_plot.png, где визуально показаны все три метрики для каждого стема. Также сохранена таблица evaluation_results.csv с детальными показателями по каждому треку.
+Был создан график evaluation_plot.png, где визуально показаны все три метрики для каждого стема. Также сохранена таблица evaluation_results.csv с детальными показателями по каждому треку. И конечно спектрограммы!!!
 
 ![График метрик SDR SIR SAR](MusicSeparator/screenshots/evaluation_plot.png)
 
 ![Таблица результатов](MusicSeparator/screenshots/evaluation_table.png)
+
+![Спектограмма](MusicSeparator/screenshots/spectogram_bass.png)
+
+![Спектограмма](MusicSeparator/screenshots/spectogram_drums.png)
+
+![Спектограмма](MusicSeparator/screenshots/spectogram_mixture.png)
+
+![Спектограмма](MusicSeparator/screenshots/spectogram_other.png)
+
+![Спектограмма](MusicSeparator/screenshots/spectogram_vocals.png)
+
 
 4. REST API и веб-интерфейс
 
