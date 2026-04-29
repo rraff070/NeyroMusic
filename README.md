@@ -92,15 +92,15 @@ python evaluate_musdb.py --musdb-path musdb18 --max-tracks 5
 
 ![Таблица результатов](MusicSeparator/screenshots/evaluation_table.png)
 
-![Спектограмма](MusicSeparator/screenshots/spectogram_bass.png)
+![Спектограмма](MusicSeparator/screenshots/spectrogram_bass.png)
 
-![Спектограмма](MusicSeparator/screenshots/spectogram_drums.png)
+![Спектограмма](MusicSeparator/screenshots/spectrogram_drums.png)
 
-![Спектограмма](MusicSeparator/screenshots/spectogram_mixture.png)
+![Спектограмма](MusicSeparator/screenshots/spectrogram_mixture.png)
 
-![Спектограмма](MusicSeparator/screenshots/spectogram_other.png)
+![Спектограмма](MusicSeparator/screenshots/spectrogram_other.png)
 
-![Спектограмма](MusicSeparator/screenshots/spectogram_vocals.png)
+![Спектограмма](MusicSeparator/screenshots/spectrogram_vocals.png)
 
 
 4. REST API и веб-интерфейс
