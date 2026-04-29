@@ -15,7 +15,7 @@ sys.path.append(str(Path(__file__).parent))
 from separator import MusicSeparator
 from config import STEM_NAMES, SAMPLE_RATE, DEVICE
 
-# Пробуем подключить библиотеку для графиков, если не встанет — работаем без неё
+# Пробуем подключить библиотеку для графиков
 try:
     import matplotlib
 
@@ -27,6 +27,17 @@ try:
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
     print("⚠️ Установите matplotlib: pip install matplotlib")
+
+# ⬇️ НОВЫЙ КОД: Подключаем librosa для спектрограмм
+try:
+    import librosa
+    import librosa.display
+
+    LIBROSA_AVAILABLE = True
+    print("✅ Librosa готов (для спектрограмм)")
+except ImportError:
+    LIBROSA_AVAILABLE = False
+    print("⚠️ Установите librosa: pip install librosa")
 
 # Пробуем подключить stempeg — он нужен, чтобы читать эталонные стемы из MUSDB18
 try:
@@ -103,6 +114,9 @@ class MUSDBEvaluator:
             return {}
 
     # Считаем метрики качества: SDR, SIR, SAR
+    # SDR (Signal-to-Distortion) - общая чистота разделения
+    # SIR (Signal-to-Interference) - насколько один инструмент не "лезет" в другой
+    # SAR (Signal-to-Artifact) - нет ли лишних шумов
     # Это главная математическая часть — сравниваем то, что предсказала модель, с правильным ответом
     def compute_metrics(self, target: np.ndarray, estimated: np.ndarray,
                         all_stems: Dict[str, np.ndarray], stem_name: str) -> Dict:
@@ -222,6 +236,56 @@ class MUSDBEvaluator:
 
         return pd.DataFrame(all_metrics) if all_metrics else pd.DataFrame()
 
+    # ⬇️ НОВЫЙ КОД: Функция для создания спектрограммы (была, но теперь она правильная)
+    def create_spectrogram_plot(self, audio_path: Path, save_path: str, title: str = None):
+        """
+        Создаёт и сохраняет спектрограмму аудиофайла
+
+        Args:
+            audio_path: путь к аудиофайлу
+            save_path: куда сохранить картинку
+            title: название графика (опционально)
+        """
+        if not LIBROSA_AVAILABLE:
+            print(f"  ⚠️ Librosa не установлена, спектрограмма для {audio_path.name} не создана")
+            return False
+
+        try:
+            # Загружаем аудио
+            y, sr = librosa.load(str(audio_path), sr=None)
+
+            # Создаём фигуру
+            plt.figure(figsize=(14, 6))
+
+            # Вычисляем STFT и преобразуем в децибелы
+            D = librosa.stft(y)
+            D_db = librosa.amplitude_to_db(abs(D), ref=np.max)
+
+            # Рисуем спектрограмму
+            img = librosa.display.specshow(D_db, sr=sr, x_axis='time', y_axis='log', cmap='coolwarm')
+
+            # Добавляем цветовую шкалу
+            plt.colorbar(img, format='%+2.0f dB')
+
+            # Настройки заголовка
+            if title is None:
+                title = f"Спектрограмма: {audio_path.name}"
+            plt.title(title, fontsize=14)
+
+            plt.xlabel("Время (секунды)", fontsize=12)
+            plt.ylabel("Частота (Гц)", fontsize=12)
+
+            plt.tight_layout()
+            plt.savefig(save_path, dpi=150, bbox_inches='tight')
+            plt.close()
+
+            print(f"  ✅ Спектрограмма сохранена: {save_path}")
+            return True
+
+        except Exception as e:
+            print(f"  ⚠️ Ошибка при создании спектрограммы для {audio_path.name}: {e}")
+            return False
+
     # Печатаем красивый отчёт и сохраняем график
     def generate_report(self, df: pd.DataFrame):
         if df.empty:
@@ -266,8 +330,69 @@ class MUSDBEvaluator:
         df.to_csv("evaluation_results.csv", index=False)
         print(f"\n💾 Сохранено: evaluation_results.csv")
 
-        # Рисуем график
+        # Рисуем график метрик
         self.create_plot(df, results)
+
+        # ⬇️ НОВЫЙ КОД: СОЗДАЁМ СПЕКТРОГРАММЫ!
+        print("\n" + "=" * 70)
+        print("🎨 СОЗДАНИЕ СПЕКТРОГРАММ")
+        print("=" * 70)
+
+        if LIBROSA_AVAILABLE and self.tracks:
+            try:
+                # Берём первый трек для демонстрации
+                first_track = self.tracks[0]
+                mixture_path = first_track["mixture"]
+                track_name = first_track["name"]
+
+                print(f"\n📊 Создаём спектрограммы для трека: {track_name}")
+
+                # 1. Спектрограмма оригинального микса
+                self.create_spectrogram_plot(
+                    mixture_path,
+                    "spectrogram_mixture.png",
+                    f"Спектрограмма оригинального микса: {track_name}"
+                )
+
+                # 2. Загружаем разделитель и получаем стемы
+                print("\n  🎵 Загружаем модель для создания спектрограмм стемов...")
+                separator = MusicSeparator(device=DEVICE, sample_rate=self.sample_rate)
+                separated = separator.separate(mixture_path, output_dir=None, use_cache=True)
+
+                # 3. Создаём спектрограммы для каждого стема
+                stem_names_ru = {
+                    "vocals": "вокал",
+                    "drums": "барабаны",
+                    "bass": "бас",
+                    "other": "остальное"
+                }
+
+                for stem_name, stem_path in separated.items():
+                    if stem_path and stem_path.exists():
+                        spectrogram_file = f"spectrogram_{stem_name}.png"
+                        self.create_spectrogram_plot(
+                            stem_path,
+                            spectrogram_file,
+                            f"Спектрограмма {stem_names_ru.get(stem_name, stem_name)}: {track_name}"
+                        )
+
+                print("\n  ✅ Все спектрограммы созданы!")
+                print("  📁 Файлы спектрограмм:")
+                print("     - spectrogram_mixture.png (оригинальный микс)")
+                print("     - spectrogram_vocals.png (вокал)")
+                print("     - spectrogram_drums.png (барабаны)")
+                print("     - spectrogram_bass.png (бас)")
+                print("     - spectrogram_other.png (остальное)")
+
+            except Exception as e:
+                print(f"\n  ⚠️ Ошибка при создании спектрограмм: {e}")
+                print("  (Это не критично, основные результаты оценки уже готовы)")
+        else:
+            if not LIBROSA_AVAILABLE:
+                print("\n  ⚠️ Librosa не установлена. Спектрограммы не созданы.")
+                print("  Установите: pip install librosa")
+            elif not self.tracks:
+                print("\n  ⚠️ Нет треков для создания спектрограмм.")
 
     # Рисуем столбчатый график с метриками
     def create_plot(self, df: pd.DataFrame, results: dict):
@@ -333,7 +458,7 @@ class MUSDBEvaluator:
                          fontsize=14, fontweight='bold', y=1.02)
             plt.tight_layout()
             plt.savefig("evaluation_plot.png", dpi=200, bbox_inches='tight', facecolor='white')
-            print(f"📊 Сохранено: evaluation_plot.png")
+            print(f"\n📊 Сохранено: evaluation_plot.png")
             plt.close()
 
         except Exception as e:
@@ -378,6 +503,11 @@ def main():
         print("\n📁 Результаты:")
         print("  📊 evaluation_plot.png - график метрик")
         print("  📄 evaluation_results.csv - детальные результаты")
+        print("  🎨 spectrogram_mixture.png - спектрограмма оригинального микса")
+        print("  🎨 spectrogram_vocals.png - спектрограмма вокала")
+        print("  🎨 spectrogram_drums.png - спектрограмма барабанов")
+        print("  🎨 spectrogram_bass.png - спектрограмма баса")
+        print("  🎨 spectrogram_other.png - спектрограмма остального")
 
 
 if __name__ == "__main__":
