@@ -28,7 +28,7 @@ except ImportError:
     MATPLOTLIB_AVAILABLE = False
     print("⚠️ Установите matplotlib: pip install matplotlib")
 
-# ⬇️ НОВЫЙ КОД: Подключаем librosa для спектрограмм
+# Подключаем librosa для спектрограмм
 try:
     import librosa
     import librosa.display
