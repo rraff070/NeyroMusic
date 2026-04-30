@@ -236,7 +236,7 @@ class MUSDBEvaluator:
 
         return pd.DataFrame(all_metrics) if all_metrics else pd.DataFrame()
 
-    # ⬇️ НОВЫЙ КОД: Функция для создания спектрограммы (была, но теперь она правильная)
+    # Функция для создания спектрограммы (была, но теперь она правильная)
     def create_spectrogram_plot(self, audio_path: Path, save_path: str, title: str = None):
         """
         Создаёт и сохраняет спектрограмму аудиофайла
